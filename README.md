@@ -160,10 +160,10 @@ PRs welcome! Focus areas:
 
 ## License
 
-Pair with [graphify](https://github.com/github/graphify) — same license.
+Pair with [graphify](https://github.com/Graphify-Labs/graphify) — same license.
 
 ## See Also
 
-- [graphify](https://github.com/github/graphify) — knowledge graph extraction from any input
+- [graphify](https://github.com/Graphify-Labs/graphify) — knowledge graph extraction from any input
 - [Databricks Notebooks](https://docs.databricks.com/en/notebooks/index.html)
 - [Lakeview Dashboards](https://docs.databricks.com/en/dashboards/index.html)
