@@ -1,6 +1,6 @@
 # graphify-skills
 
-Extends [graphify](https://github.com/github/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
+Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
 Stock graphify skips `.ipynb` and `.lvdash.json` files. These skills split them into per-language sidecars so graphify can extract meaningful AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
