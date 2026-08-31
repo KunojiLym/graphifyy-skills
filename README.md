@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock graphify skips `.ipynb` and `.lvdash.json` files. These skills split them into per-language sidecars so graphify can extract meaningful AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.53](https://github.com/Graphify-Labs/graphify/releases) as of 2026-08-30) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
@@ -137,6 +137,12 @@ daily_metrics.lvdash.md   # dashboard summary + "Consumes" table list
    - `.lvdash.md` — dashboard title, "Consumes" table list, dataset summary
 6. **Report** JSON summary (dashboards, unique tables, errors)
 
+## Upstream Graphify
+
+Native notebook support is proposed in [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498) (`KunojiLym feat/ipynb-notebook-support` → `v8`; open, not merged). Until it lands, stock Graphify still drops `.ipynb`.
+
+That PR is a weaker path: one markdown sidecar classified as a document (semantic extraction, kernel-language fenced code, outputs stripped). It does not split cells into per-language AST sidecars and does not route Databricks `%sql`/`%md`/`%sh` magics. These skills stay strictly better even after 1498 merges — per-language AST sidecars + magic routing, and Lakeview coverage unique to `databricks-graphify`. Use `/ipynb-graphify` or `/databricks-graphify`; do not open a new PR to `safishamsi/graphify`. Graphify itself lives at [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify).
+
 ## Limitations
 
 - **Inline line magics** (e.g., `%time result = foo()`) in the middle of a cell are commented out but not extracted separately
@@ -165,5 +171,7 @@ Pair with [graphify](https://github.com/Graphify-Labs/graphify) — same license
 ## See Also
 
 - [graphify](https://github.com/Graphify-Labs/graphify) — knowledge graph extraction from any input
+- [graphify changelog](https://github.com/Graphify-Labs/graphify/blob/v8/CHANGELOG.md) / [releases](https://github.com/Graphify-Labs/graphify/releases)
+- [PR 1498 — native `.ipynb` markdown sidecars](https://github.com/Graphify-Labs/graphify/pull/1498)
 - [Databricks Notebooks](https://docs.databricks.com/en/notebooks/index.html)
 - [Lakeview Dashboards](https://docs.databricks.com/en/dashboards/index.html)

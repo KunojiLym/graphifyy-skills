@@ -131,15 +131,24 @@ The sidecars are build artifacts. In your final summary, remind the user:
   to its origin cell, but graphify's `source_location` will read `<stem>.ipynb.py`.
 - **Cross-notebook `%run ./other` edges are not created** — the magic line is
   commented out (`#nb> %run ...`) so the Python parses cleanly; graphify won't
-  infer a reference edge from it. (A native fork could; see below.)
+  infer a reference edge from it.
 - Inline line-magics (`%timeit`, `!pip ...`) inside an otherwise-Python cell are
   commented with a `#nb> ` prefix so tree-sitter doesn't choke.
 
-## When to graduate to a native fork
+## Native Graphify path (PR 1498)
 
-This wrapper is the zero-maintenance path and survives graphify upgrades. If you
-want notebook support merged upstream (line-accurate cell mapping, `%run` edges),
-port this cell-splitting logic into graphify's `detect.py` as a converter
-mirroring `convert_office_file()` (the `.docx`/`.xlsx` → markdown-sidecar path),
-add a `tests/fixtures/` notebook + test, and open a PR to `safishamsi/graphify`.
-The wrapper is the working prototype for that PR.
+Stock Graphify v8 (0.9.53 as of 2026-08-30) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. Native support is proposed in
+[Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
+(open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
+lands, this skill remains the working path. Do not claim native notebook support
+is already on v8.
+
+PR 1498 is a weaker native path: one markdown sidecar classified as a document
+(semantic extraction, kernel-language fenced code, outputs stripped). It does
+not split cells into per-language AST sidecars and does not route Databricks
+`%sql`/`%md`/`%sh` magics. This skill stays strictly better even after 1498
+merges. Keep using `/ipynb-graphify` for notebooks-as-code.
+
+Graphify lives at [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify).
+Do not open a new PR to `safishamsi/graphify`.
