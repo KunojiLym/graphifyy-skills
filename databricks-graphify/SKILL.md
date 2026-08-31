@@ -160,6 +160,20 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Port `lvdash_split.py` logic into graphify `detect.py` as a converter (like
-`convert_office_file`) and merge notebook splitting from ipynb-graphify. This skill is
-the working prototype for that PR.
+Stock Graphify v8 (0.9.53 as of 2026-08-30) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. Native notebook support is proposed in
+[Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
+(open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
+lands, this skill remains the working path. Do not claim native notebook support
+is already on v8.
+
+PR 1498 is a weaker native path: one markdown sidecar / docs pass (semantic
+extraction, kernel-language fenced code, outputs stripped). It does not split
+cells into per-language AST sidecars and does not route Databricks
+`%sql`/`%md`/`%sh` magics. This skill stays strictly better even after 1498
+lands — per-language AST sidecars + magic routing — and Lakeview coverage
+remains unique to `/databricks-graphify`. Keep using this skill for Databricks
+workspaces.
+
+Graphify lives at [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify).
+Do not open a new PR to `safishamsi/graphify`.
