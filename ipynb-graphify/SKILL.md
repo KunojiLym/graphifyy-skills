@@ -137,8 +137,9 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.53 as of 2026-08-30) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. Native support is proposed in
+Stock Graphify v8 (0.9.55 as of 2026-09-07) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.55 adds merge-graphs
+cross-repo member-call resolution. Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support
