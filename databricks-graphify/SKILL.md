@@ -160,9 +160,10 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.56 as of 2026-09-08) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.56 extracts Rust trait method
-declarations that were previously dropped. Native notebook support is proposed in
+Stock Graphify v8 (0.9.57 as of 2026-09-10) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.57 is a fix-only release for
+incremental rebuild AST, richer-node duplicate merge, C# generic call sites,
+and `this.X = function` members. Native notebook support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support
