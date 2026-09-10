@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock Graphify v8 ([0.9.56](https://pypi.org/project/graphifyy/0.9.56/) as of 2026-09-08) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.56 extracts Rust trait method declarations that were previously dropped. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.57](https://pypi.org/project/graphifyy/0.9.57/) as of 2026-09-10) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.57 is a fix-only release for incremental rebuild AST, richer-node duplicate merge, C# generic call sites, and `this.X = function` members. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
