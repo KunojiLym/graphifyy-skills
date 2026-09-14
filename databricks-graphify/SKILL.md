@@ -160,10 +160,11 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.57 as of 2026-09-10) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.57 is a fix-only release for
-incremental rebuild AST, richer-node duplicate merge, C# generic call sites,
-and `this.X = function` members. Native notebook support is proposed in
+Stock Graphify v8 (0.9.61 as of 2026-09-12) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.61 is a fix-only release for
+`graphify.serve` on Python 3.12/3.13 (`jieba-py` extra) and the git hook's
+rebuild-root guard against a symlink-loop or dangling `.graphify_root`. Native
+notebook support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support
