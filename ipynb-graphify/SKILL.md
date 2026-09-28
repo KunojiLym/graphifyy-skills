@@ -137,11 +137,11 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.58 as of 2026-09-11) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.58 is a fix-heavy release
-for nested Python function resolution, namespace/sibling imports, PHP aliased
-`use`, and `graphify install` on unwritable config, plus SQL `CREATE INDEX`
-nodes and Rust `static`/`const` extraction. Native support is proposed in
+Stock Graphify v8 (0.9.70 as of 2026-09-27) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.70 closes Fortran
+`#include` host-file reads (GHSA-pcc4-rvhr-2pr8), `--watch` shell injection,
+and Terraform name/value secret leaks, and adds JSX component `calls` edges
+plus nested-namespace Python import resolution. Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support
