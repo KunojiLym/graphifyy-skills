@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock Graphify v8 ([0.9.70](https://pypi.org/project/graphifyy/0.9.70/) as of 2026-09-27) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.70 closes Fortran `#include` path traversal into `graph.json` and LLM context (GHSA-pcc4-rvhr-2pr8), stops Aider/Devin `--watch` from shell-interpolating `INPUT_PATH`, and redacts Terraform name/value secrets, plus JSX component `calls` edges and nested-namespace Python import resolution. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.71](https://pypi.org/project/graphifyy/0.9.71/) as of 2026-09-28) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.71 extracts SQL `CREATE TRIGGER` nodes linked to their table, Groovy `enum` constants, and R6/`setRefClass` class bodies (including `self$method()` / `private$method()` calls), and the markdown wikilink index now honors ignore rules. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
