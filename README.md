@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock Graphify v8 ([0.9.71](https://pypi.org/project/graphifyy/0.9.71/) as of 2026-09-28) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.71 extracts SQL `CREATE TRIGGER` nodes linked to their table, Groovy `enum` constants, and R6/`setRefClass` class bodies (including `self$method()` / `private$method()` calls), and the markdown wikilink index now honors ignore rules. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.72](https://pypi.org/project/graphifyy/0.9.72/) as of 2026-09-29) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.72 auto-refreshes a stale installed `SKILL.md` after upgrade, extracts SQL DDL that appears before a PostgreSQL `DO $$` block, and fixes Kotlin annotated properties, Razor `@functions` members, and Blade `@extends` layout links. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
