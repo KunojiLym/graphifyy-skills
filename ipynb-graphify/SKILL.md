@@ -137,11 +137,11 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.72 as of 2026-09-29) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.72 auto-refreshes a stale
-installed `SKILL.md` after upgrade, extracts SQL DDL that appears before a
-PostgreSQL `DO $$` block, and fixes Kotlin annotated properties, Razor
-`@functions` members, and Blade `@extends` layout links. Native support is proposed in
+Stock Graphify v8 (0.9.73 as of 2026-09-30) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.73 extracts enum members
+with `case_of` edges in Rust, Zig, C++, and Scala 3, resolves Java inherited
+and `super.method()` calls, and extracts Solidity file-level free functions.
+Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support

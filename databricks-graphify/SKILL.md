@@ -160,11 +160,11 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.72 as of 2026-09-29) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.72 auto-refreshes a stale installed
-`SKILL.md` after upgrade, extracts SQL DDL that appears before a PostgreSQL
-`DO $$` block, and fixes Kotlin annotated properties, Razor `@functions`
-members, and Blade `@extends` layout links. Native notebook support is proposed in
+Stock Graphify v8 (0.9.73 as of 2026-09-30) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.73 extracts enum members with
+`case_of` edges in Rust, Zig, C++, and Scala 3, resolves Java inherited and
+`super.method()` calls, and extracts Solidity file-level free functions.
+Native notebook support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support
