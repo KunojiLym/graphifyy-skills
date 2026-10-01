@@ -137,11 +137,11 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.71 as of 2026-09-28) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.71 extracts SQL
-`CREATE TRIGGER` nodes linked to their table, Groovy `enum` constants, and
-R6/`setRefClass` class bodies (including `self$method()` / `private$method()`
-calls), and the markdown wikilink index now honors ignore rules. Native support is proposed in
+Stock Graphify v8 (0.9.73 as of 2026-09-30) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.73 extracts enum members
+with `case_of` edges in Rust, Zig, C++, and Scala 3, resolves Java inherited
+and `super.method()` calls, and extracts Solidity file-level free functions.
+Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
 lands, this skill remains the working path. Do not claim native notebook support
