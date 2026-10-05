@@ -160,10 +160,10 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.73 as of 2026-09-30) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.73 extracts enum members with
-`case_of` edges in Rust, Zig, C++, and Scala 3, resolves Java inherited and
-`super.method()` calls, and extracts Solidity file-level free functions.
+Stock Graphify v8 (0.9.76 as of 2026-10-04) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.76 refuses a `core.hooksPath`
+outside the repo in `graphify hook install` (CWE-22) and no longer indexes
+its own installed skill folders.
 Native notebook support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
