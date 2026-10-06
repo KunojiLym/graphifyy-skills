@@ -137,10 +137,12 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.76 as of 2026-10-04) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.76 refuses a `core.hooksPath`
-outside the repo in `graphify hook install` (CWE-22) and no longer indexes its
-own installed skill folders.
+Stock Graphify v8 (0.9.77 as of 2026-10-05) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.77 stops an incremental
+`graphify update` on a subfolder from false-reporting files in sibling
+folders as deleted, preserves stored edge direction when reloading
+`graph.json`, and no longer crashes a second `/graphify` run when
+`.graphify_semantic.json` is missing.
 Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that

@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock Graphify v8 ([0.9.76](https://pypi.org/project/graphifyy/0.9.76/) as of 2026-10-04) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.76 refuses a `core.hooksPath` outside the repo in `graphify hook install` (CWE-22) and no longer indexes its own installed skill folders. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.77](https://pypi.org/project/graphifyy/0.9.77/) as of 2026-10-05) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.77 stops an incremental `graphify update` on a subfolder from false-reporting files in sibling folders as deleted, preserves stored edge direction when reloading `graph.json`, and no longer crashes a second `/graphify` run when `.graphify_semantic.json` is missing. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
