@@ -137,8 +137,8 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.79 as of 2026-10-06) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.79 stops incremental
+Stock Graphify v8 (0.9.86 as of 2026-10-11) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.86 stops incremental
 `graphify update` and `watch` from re-clustering and re-rendering after
 an unchanged rebuild.
 Native support is proposed in
