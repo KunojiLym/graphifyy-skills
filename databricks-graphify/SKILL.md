@@ -160,8 +160,8 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.79 as of 2026-10-06) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.79 stops incremental
+Stock Graphify v8 (0.9.86 as of 2026-10-11) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.86 stops incremental
 `graphify update` and `watch` from re-clustering and re-rendering after
 an unchanged rebuild.
 Native notebook support is proposed in
