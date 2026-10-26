@@ -137,10 +137,10 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.86 as of 2026-10-11) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.86 stops incremental
-`graphify update` and `watch` from re-clustering and re-rendering after
-an unchanged rebuild.
+Stock Graphify v8 (0.9.95 as of 2026-10-23) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.95 hardens skill-install
+against symlink redirect attacks and extracts explicit Python, Go, C++, and Rust
+type aliases as type nodes so references resolve instead of minting stubs.
 Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
