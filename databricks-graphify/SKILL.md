@@ -160,10 +160,11 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.95 as of 2026-10-23) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.95 hardens skill-install against
-symlink redirect attacks and extracts explicit Python, Go, C++, and Rust type
-aliases as type nodes so references resolve instead of minting stubs.
+Stock Graphify v8 (0.9.100 as of 2026-11-01) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.100 (with 0.9.96–0.9.99) adds
+weakest-hop path confidence and parallel-edge `also_seen` provenance,
+centralises LLM rationale credential redaction, and fixes case-distinct
+type/function node ids plus JVM cross-file import resolution.
 Native notebook support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
