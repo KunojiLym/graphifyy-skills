@@ -10,23 +10,38 @@ class UnsafeOutputError(ValueError):
     """Refuse to write when the target path is outside scope or unsafe."""
 
 
-def _is_within(child: Path, parent: Path) -> bool:
-    """Containment without following a symlink in the final path component."""
+def _parent_resolved_contained(child: Path, parent_root: Path) -> bool:
+    """True when the resolved parent directory is under parent_root."""
     try:
-        child.absolute().relative_to(parent.resolve())
+        resolved_parent = child.parent.resolve(strict=False)
+        resolved_parent.relative_to(parent_root.resolve())
         return True
-    except ValueError:
+    except (ValueError, OSError):
         return False
 
 
 def assert_output_allowed(path: Path, *, allowed_roots: tuple[Path, ...]) -> Path:
-    """Ensure the output path sits under an allowed root (symlink location, not target)."""
+    """Ensure output path parent (resolved) sits under allowed roots; final name stays lexical.
+
+    The last path component is not resolved so a sidecar symlink can be replaced via
+    ``os.replace`` without writing through to an external target.
+    """
+    if ".." in path.parts:
+        raise UnsafeOutputError(f"refusing path with '..': {path}")
+
     absolute = path.absolute()
     for root in allowed_roots:
-        if _is_within(absolute, root.resolve()):
+        if _parent_resolved_contained(absolute, root):
             return path
+    try:
+        resolved_parent = absolute.parent.resolve(strict=False)
+    except OSError as exc:
+        resolved_parent = absolute.parent
+        parent_note = f" (parent resolve failed: {exc})"
+    else:
+        parent_note = f" (resolved parent {resolved_parent})"
     raise UnsafeOutputError(
-        f"refusing to write outside allowed roots: {path} (absolute {absolute})"
+        f"refusing to write outside allowed roots: {path}{parent_note}"
     )
 
 
@@ -49,14 +64,15 @@ def safe_write_text(path: Path, text: str, *, allowed_roots: tuple[Path, ...]) -
     dest = assert_output_allowed(path, allowed_roots=allowed_roots)
     parent = dest.parent
     parent.mkdir(parents=True, exist_ok=True)
+    # Re-check after mkdir: a symlinked segment in parent could redirect the tree.
+    assert_output_allowed(dest, allowed_roots=allowed_roots)
 
     if dest.exists() or dest.is_symlink():
-        if dest.is_symlink():
-            # Replace the symlink itself (do not write through to an external target).
-            dest.unlink()
-        elif dest.is_dir():
+        if dest.is_dir():
             raise UnsafeOutputError(f"refusing to overwrite directory: {dest}")
-        elif not dest.is_file():
+        if dest.is_file() or dest.is_symlink():
+            pass  # os.replace below atomically replaces file or symlink
+        else:
             raise UnsafeOutputError(f"refusing to overwrite special file: {dest}")
 
     fd, tmp_name = tempfile.mkstemp(
@@ -68,7 +84,7 @@ def safe_write_text(path: Path, text: str, *, allowed_roots: tuple[Path, ...]) -
             fh.write(text)
             fh.flush()
             os.fsync(fh.fileno())
-        # Same-directory replace avoids races with concurrent readers.
+        # Replace file or symlink inode atomically; do not unlink dest before this.
         os.replace(tmp_path, dest)
     except Exception:
         try:

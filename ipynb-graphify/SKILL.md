@@ -92,7 +92,10 @@ if (Test-Path graphify-out\.graphify_python) {
   $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
 }
 New-Item -ItemType Directory -Force -Path graphify-out -ErrorAction SilentlyContinue | Out-Null
-& $PY $Script $ScanTarget
+# Optional: set when the user passed --outdir <dir>
+$OutDir = $null
+# Optional: $true when the user passed --clean
+$RunClean = $false
 ```
 
 **Bash**:
@@ -126,7 +129,8 @@ SCRIPT="$SKILLS_ROOT/ipynb-graphify/ipynb_split.py"
 [[ -f "$SCRIPT" ]] || { echo "error: converter missing: $SCRIPT" >&2; exit 1; }
 PY=python3
 if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
-"$PY" "$SCRIPT" "$SCAN_TARGET"
+# Optional: OUTDIR="..." when the user passed --outdir <dir>
+# Optional: RUN_CLEAN=1 when the user passed --clean
 ```
 
 (`lib/resolve_skills_root.sh` / `lib/resolve_skills_root.ps1` mirror this logic for copy/paste maintenance.)
@@ -135,9 +139,25 @@ The converter is **stdlib-only** (Python 3.8+). It adds the skills repo root to 
 
 ### Step 2 — Convert notebooks to sidecars
 
-Re-run the command from Step 1 (with optional flags) and read the JSON summary on stdout.
+Run the converter **once** with all flags from Step 1 variables (do not invoke it in Step 1):
 
-The script prints a JSON summary. Read it silently and report a clean line, e.g.:
+```powershell
+$invokeArgs = @($ScanTarget)
+if ($OutDir) { $invokeArgs += "--outdir"; $invokeArgs += $OutDir }
+if ($RunClean) { $invokeArgs += "--clean" }
+& $PY $Script @invokeArgs
+```
+
+```bash
+ARGS=("$SCAN_TARGET")
+[[ -n "${OUTDIR:-}" ]] && ARGS+=("--outdir" "$OUTDIR")
+[[ -n "${RUN_CLEAN:-}" ]] && ARGS+=("--clean")
+"$PY" "$SCRIPT" "${ARGS[@]}"
+```
+
+When the user passes `--outdir`, set `$OutDir` / `OUTDIR` only in Step 1 and include it here so sidecars are **not** also written beside the notebooks in the source tree.
+
+The script prints a JSON summary on stdout. Read it silently and report a clean line, e.g.:
 
 ```
 Converted N notebooks → M sidecars (X code, Y markdown, Z sql).

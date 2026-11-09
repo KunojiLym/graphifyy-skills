@@ -66,6 +66,9 @@ $LvdashScript = Join-Path $SkillsRoot "databricks-graphify\lvdash_split.py"
 if (-not (Test-Path -LiteralPath $IpynbScript)) { throw "Converter missing: $IpynbScript" }
 if (-not (Test-Path -LiteralPath $LvdashScript)) { throw "Converter missing: $LvdashScript" }
 
+$OutDir = $null
+$RunClean = $false
+
 New-Item -ItemType Directory -Force -Path graphify-out | Out-Null
 $PY = "python"
 if (Test-Path graphify-out\.graphify_python) {
@@ -84,6 +87,7 @@ LVDASH_SCRIPT="$SKILLS_ROOT/databricks-graphify/lvdash_split.py"
 [[ -f "$IPYNB_SCRIPT" && -f "$LVDASH_SCRIPT" ]] || { echo "error: converter missing under $SKILLS_ROOT" >&2; exit 1; }
 PY=python3
 if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
+# Optional: $OutDir / OUTDIR when the user passed --outdir <dir>
 ```
 
 Pass `$ScanTarget` / `$SCAN_TARGET` as a quoted argument in every converter invocation (paths with spaces).
@@ -91,14 +95,19 @@ Pass `$ScanTarget` / `$SCAN_TARGET` as a quoted argument in every converter invo
 ### Step 2a — Convert notebooks (ipynb-graphify)
 
 ```powershell
-& $PY $IpynbScript $ScanTarget
-# optional: & $PY $IpynbScript $ScanTarget --outdir "D:\mirrored sidecars"
+$invokeArgs = @($ScanTarget)
+if ($OutDir) { $invokeArgs += "--outdir"; $invokeArgs += $OutDir }
+if ($RunClean) { $invokeArgs += "--clean" }
+& $PY $IpynbScript @invokeArgs
 ```
 
-On `--clean`:
+Set `$RunClean = $true` / `RUN_CLEAN=1` when the user passed `--clean` (apply in Step 2b as well).
 
-```powershell
-& $PY $IpynbScript $ScanTarget --clean
+```bash
+ARGS=("$SCAN_TARGET")
+[[ -n "${OUTDIR:-}" ]] && ARGS+=("--outdir" "$OUTDIR")
+[[ -n "${RUN_CLEAN:-}" ]] && ARGS+=("--clean")
+"$PY" "$IPYNB_SCRIPT" "${ARGS[@]}"
 ```
 
 Report briefly, e.g. `Notebooks: N → M sidecars (X py, Y md, Z sql).`
@@ -108,13 +117,19 @@ See `../ipynb-graphify/SKILL.md` for cell-routing details and notebook limitatio
 ### Step 2b — Convert Lakeview dashboards
 
 ```powershell
-& $PY $LvdashScript $ScanTarget
+$lvArgs = @($ScanTarget)
+if ($OutDir) { $lvArgs += "--outdir"; $lvArgs += $OutDir }
+if ($RunClean) { $lvArgs += "--clean" }
+& $PY $LvdashScript @lvArgs
 ```
 
-On `--clean`:
+Use the **same** `$OutDir` / `OUTDIR` as Step 2a when mirroring sidecars.
 
-```powershell
-& $PY $LvdashScript $ScanTarget --clean
+```bash
+LVARGS=("$SCAN_TARGET")
+[[ -n "${OUTDIR:-}" ]] && LVARGS+=("--outdir" "$OUTDIR")
+[[ -n "${RUN_CLEAN:-}" ]] && LVARGS+=("--clean")
+"$PY" "$LVDASH_SCRIPT" "${LVARGS[@]}"
 ```
 
 Report briefly, e.g. `Dashboards: N → M sidecars; tables: gold.linkedin.daily_statistics, …`

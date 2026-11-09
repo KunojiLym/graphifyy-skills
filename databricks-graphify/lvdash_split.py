@@ -193,7 +193,7 @@ def clean(root: Path) -> list[str]:
                 allowed = (root.resolve(),)
                 if safe_unlink(p, allowed_roots=allowed):
                     removed.append(str(p))
-            except ValueError:
+            except (ValueError, OSError):
                 pass
     return removed
 
