@@ -124,6 +124,19 @@ def _anchor_parent_dir_fd(path: Path, *, allowed_roots: tuple[Path, ...]) -> tup
     return fd, dest.name
 
 
+def _fsync_dir_best_effort(fd: int) -> None:
+    """Persist directory metadata; ignore fsync failures common on FUSE / network mounts."""
+    try:
+        os.fsync(fd)
+    except OSError as exc:
+        ignorable = {errno.EINVAL, errno.ENOTSUP, errno.EBADF}
+        if hasattr(errno, "EOPNOTSUPP"):
+            ignorable.add(errno.EOPNOTSUPP)
+        if exc.errno in ignorable:
+            return
+        raise
+
+
 def _write_via_dir_fd(parent_fd: int, dest_name: str, text: str) -> None:
     suffix = Path(dest_name).suffix
     tmp_name = f".graphify-sidecar-{secrets.token_hex(8)}{suffix}"
@@ -138,13 +151,13 @@ def _write_via_dir_fd(parent_fd: int, dest_name: str, text: str) -> None:
             fh.flush()
             os.fsync(fh.fileno())
         os.replace(tmp_name, dest_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-        os.fsync(parent_fd)
     except Exception:
         try:
             os.unlink(tmp_name, dir_fd=parent_fd)
         except OSError:
             pass
         raise
+    _fsync_dir_best_effort(parent_fd)
 
 
 def _unlink_via_dir_fd(parent_fd: int, name: str) -> None:
@@ -157,7 +170,7 @@ def _unlink_via_dir_fd(parent_fd: int, name: str) -> None:
     if stat.S_ISDIR(st.st_mode):
         raise UnsafeOutputError(f"refusing to remove directory: {name}")
     os.unlink(name, dir_fd=parent_fd)
-    os.fsync(parent_fd)
+    _fsync_dir_best_effort(parent_fd)
 
 
 def safe_unlink(path: Path, *, allowed_roots: tuple[Path, ...]) -> bool:

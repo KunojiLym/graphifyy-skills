@@ -1,10 +1,62 @@
 from __future__ import annotations
 
+import errno
+import os
 from pathlib import Path
 
 import pytest
 
-from lib.safe_write import UnsafeOutputError, assert_output_allowed, safe_unlink, safe_write_text
+from lib.safe_write import (
+    UnsafeOutputError,
+    _fsync_dir_best_effort,
+    assert_output_allowed,
+    safe_unlink,
+    safe_write_text,
+)
+
+
+def test_fsync_dir_best_effort_ignores_einval(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(os, "fsync", lambda _fd: (_ for _ in ()).throw(OSError(errno.EINVAL, "fuse")))
+    _fsync_dir_best_effort(99)
+
+
+def test_fsync_dir_best_effort_reraises_eio(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(os, "fsync", lambda _fd: (_ for _ in ()).throw(OSError(errno.EIO, "disk")))
+    with pytest.raises(OSError) as exc:
+        _fsync_dir_best_effort(99)
+    assert exc.value.errno == errno.EIO
+
+
+def test_write_succeeds_when_dir_fsync_einval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "nb.ipynb.py"
+    real_fsync = os.fsync
+    calls: list[int] = []
+
+    def counted_fsync(fd: int) -> None:
+        calls.append(fd)
+        if len(calls) >= 2:
+            raise OSError(errno.EINVAL, "dir fsync rejected")
+        real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", counted_fsync)
+    safe_write_text(target, "ok", allowed_roots=(tmp_path,))
+    assert target.read_text(encoding="utf-8") == "ok"
+    assert len(calls) >= 2
+
+
+def test_unlink_succeeds_when_dir_fsync_einval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "drop.ipynb.py"
+    target.write_text("x", encoding="utf-8")
+
+    def dir_fsync_einval(fd: int) -> None:
+        raise OSError(errno.EINVAL, "dir fsync rejected")
+
+    monkeypatch.setattr(os, "fsync", dir_fsync_einval)
+    assert safe_unlink(target, allowed_roots=(tmp_path,)) is True
 
 
 def test_write_confined_to_root(tmp_path: Path) -> None:
