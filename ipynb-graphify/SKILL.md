@@ -45,36 +45,91 @@ follow all steps in order.
 
 ### Step 1 — Resolve skill paths, target path, and Python
 
-Pick the path to scan (default `.`). Pass it as a **real argument** to the converter — do not paste path text into code as a bare identifier.
+**Set the scan target explicitly** from the user's `/ipynb-graphify <path>` request (default `"."`). Do not rely on `$args[0]`, `$1`, or `$PSScriptRoot` — agents usually run these lines **ad hoc** and those values are empty.
 
-**PowerShell** (paths with spaces must be quoted):
+Probe known install roots (project `.claude/skills/graphifyy-skills`, global `~/.claude/skills/graphifyy-skills`, `.cursor/skills/graphifyy-skills`, dev checkout cwd, or `GRAPHIFYY_SKILLS_ROOT`). Use `$PSScriptRoot` / `BASH_SOURCE` only when non-empty **and** the path contains `ipynb_split.py`. **Fail loudly** if no converter is found.
+
+**PowerShell** (quote paths that contain spaces):
 
 ```powershell
-$SkillDir = $PSScriptRoot   # directory containing this SKILL.md
-$Script = Join-Path $SkillDir "ipynb_split.py"
-$Target = $args[0]
-if (-not $Target) { $Target = "." }
+# Set from the user's slash command before running ad hoc:
+$ScanTarget = "."
+
+function Resolve-GraphifyySkillsRoot {
+  if ($env:GRAPHIFYY_SKILL_DIR -and (Test-Path -LiteralPath (Join-Path $env:GRAPHIFYY_SKILL_DIR "ipynb_split.py"))) {
+    return (Split-Path $env:GRAPHIFYY_SKILL_DIR -Parent)
+  }
+  if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot "ipynb_split.py"))) {
+    return (Split-Path $PSScriptRoot -Parent)
+  }
+  $cwd = (Get-Location).Path
+  $home = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+  $candidates = @()
+  if ($env:GRAPHIFYY_SKILLS_ROOT) { $candidates += $env:GRAPHIFYY_SKILLS_ROOT }
+  $candidates += @(
+    $cwd,
+    (Join-Path $cwd ".claude\skills\graphifyy-skills"),
+    (Join-Path $home ".claude\skills\graphifyy-skills"),
+    (Join-Path $cwd ".cursor\skills\graphifyy-skills")
+  )
+  foreach ($root in $candidates) {
+    if (-not $root) { continue }
+    $ipynb = Join-Path $root "ipynb-graphify\ipynb_split.py"
+    $lv = Join-Path $root "databricks-graphify\lvdash_split.py"
+    if ((Test-Path -LiteralPath $ipynb) -and (Test-Path -LiteralPath $lv)) {
+      return (Resolve-Path -LiteralPath $root).Path
+    }
+  }
+  throw "graphifyy-skills not found: install to ~/.claude/skills/graphifyy-skills or .claude/skills/graphifyy-skills (or set GRAPHIFYY_SKILLS_ROOT)."
+}
+
+$SkillsRoot = Resolve-GraphifyySkillsRoot
+$Script = Join-Path $SkillsRoot "ipynb-graphify\ipynb_split.py"
+if (-not (Test-Path -LiteralPath $Script)) { throw "Converter missing: $Script" }
 
 $PY = "python"
 if (Test-Path graphify-out\.graphify_python) {
-    $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
+  $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
 }
 New-Item -ItemType Directory -Force -Path graphify-out -ErrorAction SilentlyContinue | Out-Null
-& $PY $Script $Target
+& $PY $Script $ScanTarget
 ```
 
-**Bash** (global install `~/.claude/skills/graphifyy-skills/…` or project-local `.claude/skills/graphifyy-skills/…`):
+**Bash**:
 
 ```bash
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT="$SKILL_DIR/ipynb_split.py"
-TARGET="${1:-.}"
+# Set from the user's slash command before running ad hoc:
+SCAN_TARGET="."
+
+resolve_graphifyy_skills_root() {
+  local cwd="${1:-$(pwd)}" home="${2:-$HOME}" candidate
+  if [[ -n "${GRAPHIFYY_SKILL_DIR:-}" && -f "${GRAPHIFYY_SKILL_DIR}/ipynb_split.py" ]]; then
+    (cd "$(dirname "$GRAPHIFYY_SKILL_DIR")" && pwd); return 0
+  fi
+  if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != bash && -f "$(dirname "${BASH_SOURCE[0]}")/ipynb_split.py" ]]; then
+    (cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd); return 0
+  fi
+  local roots=()
+  [[ -n "${GRAPHIFYY_SKILLS_ROOT:-}" ]] && roots+=("$GRAPHIFYY_SKILLS_ROOT")
+  roots+=("$cwd" "$cwd/.claude/skills/graphifyy-skills" "$home/.claude/skills/graphifyy-skills" "$cwd/.cursor/skills/graphifyy-skills")
+  for candidate in "${roots[@]}"; do
+    if [[ -f "$candidate/ipynb-graphify/ipynb_split.py" && -f "$candidate/databricks-graphify/lvdash_split.py" ]]; then
+      (cd "$candidate" && pwd); return 0
+    fi
+  done
+  echo "error: graphifyy-skills not found (set GRAPHIFYY_SKILLS_ROOT or install under .claude/skills)." >&2
+  return 1
+}
+
+SKILLS_ROOT="$(resolve_graphifyy_skills_root)" || exit 1
+SCRIPT="$SKILLS_ROOT/ipynb-graphify/ipynb_split.py"
+[[ -f "$SCRIPT" ]] || { echo "error: converter missing: $SCRIPT" >&2; exit 1; }
 PY=python3
 if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
-"$PY" "$SCRIPT" "$TARGET"
+"$PY" "$SCRIPT" "$SCAN_TARGET"
 ```
 
-If the host has no script root, resolve `ipynb_split.py` under the installed `graphifyy-skills/ipynb-graphify/` tree (nested global or project-local — same relative layout).
+(`lib/resolve_skills_root.sh` / `lib/resolve_skills_root.ps1` mirror this logic for copy/paste maintenance.)
 
 The converter is **stdlib-only** (Python 3.8+). It adds the skills repo root to `sys.path` so `lib/safe_write.py` is found when scripts are invoked by absolute path.
 
@@ -94,11 +149,11 @@ user no notebooks were found and continue to Step 3 anyway (the repo may still
 have code/docs worth graphing) — or stop if the user only wanted notebooks.
 
 **`--clean` mode:** if the user passed `--clean`, append `--clean` to the converter argv
-(and keep `$Target` quoted), report how many sidecars were removed, then stop — do not
+(and keep `$ScanTarget` / `$SCAN_TARGET` quoted), report how many sidecars were removed, then stop — do not
 run graphify.
 
 **`--outdir`:** pass `--outdir` and a quoted directory path as separate argv tokens after
-`$Target` / `$TARGET`.
+`$ScanTarget` / `$SCAN_TARGET`.
 
 ### Step 3 — Run the graphify pipeline
 

@@ -51,15 +51,20 @@ graphifyy-skills/
   databricks-graphify/lvdash_split.py   ← this skill
 ```
 
-**PowerShell:**
+**Set `$ScanTarget` / `SCAN_TARGET` explicitly** from the user's `/databricks-graphify <path>` (default `"."`). Do not use `$args[0]` or `$1`. Resolve the skills tree from install candidates; use `$PSScriptRoot` only when it contains `lvdash_split.py` or `ipynb_split.py`. Fail loudly if not found (same resolver as `/ipynb-graphify` — see that skill's Step 1 Bash/PowerShell `Resolve-GraphifyySkillsRoot` / `resolve_graphifyy_skills_root`).
+
+**PowerShell** (after resolver returns `$SkillsRoot`):
 
 ```powershell
-$DatabricksDir = $PSScriptRoot
-$SkillsRoot    = Split-Path $DatabricksDir -Parent
-$IpynbScript   = Join-Path $SkillsRoot "ipynb-graphify\ipynb_split.py"
-$LvdashScript  = Join-Path $DatabricksDir "lvdash_split.py"
-$Target        = $args[0]
-if (-not $Target) { $Target = "." }
+$ScanTarget = "."
+
+# … Resolve-GraphifyySkillsRoot { … }  (same function as ipynb-graphify Step 1)
+
+$SkillsRoot = Resolve-GraphifyySkillsRoot
+$IpynbScript = Join-Path $SkillsRoot "ipynb-graphify\ipynb_split.py"
+$LvdashScript = Join-Path $SkillsRoot "databricks-graphify\lvdash_split.py"
+if (-not (Test-Path -LiteralPath $IpynbScript)) { throw "Converter missing: $IpynbScript" }
+if (-not (Test-Path -LiteralPath $LvdashScript)) { throw "Converter missing: $LvdashScript" }
 
 New-Item -ItemType Directory -Force -Path graphify-out | Out-Null
 $PY = "python"
@@ -68,31 +73,32 @@ if (Test-Path graphify-out\.graphify_python) {
 }
 ```
 
-**Bash:**
+**Bash** (after `SKILLS_ROOT="$(resolve_graphifyy_skills_root)" || exit 1`):
 
 ```bash
-DATABRICKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_ROOT="$(dirname "$DATABRICKS_DIR")"
+SCAN_TARGET="."
+
+SKILLS_ROOT="$(resolve_graphifyy_skills_root)" || exit 1
 IPYNB_SCRIPT="$SKILLS_ROOT/ipynb-graphify/ipynb_split.py"
-LVDASH_SCRIPT="$DATABRICKS_DIR/lvdash_split.py"
-TARGET="${1:-.}"
+LVDASH_SCRIPT="$SKILLS_ROOT/databricks-graphify/lvdash_split.py"
+[[ -f "$IPYNB_SCRIPT" && -f "$LVDASH_SCRIPT" ]] || { echo "error: converter missing under $SKILLS_ROOT" >&2; exit 1; }
 PY=python3
 if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
 ```
 
-Pass `$Target` / `$TARGET` as a quoted argument in every converter invocation (paths with spaces).
+Pass `$ScanTarget` / `$SCAN_TARGET` as a quoted argument in every converter invocation (paths with spaces).
 
 ### Step 2a — Convert notebooks (ipynb-graphify)
 
 ```powershell
-& $PY $IpynbScript $Target
-# optional: & $PY $IpynbScript $Target --outdir "D:\mirrored sidecars"
+& $PY $IpynbScript $ScanTarget
+# optional: & $PY $IpynbScript $ScanTarget --outdir "D:\mirrored sidecars"
 ```
 
 On `--clean`:
 
 ```powershell
-& $PY $IpynbScript $Target --clean
+& $PY $IpynbScript $ScanTarget --clean
 ```
 
 Report briefly, e.g. `Notebooks: N → M sidecars (X py, Y md, Z sql).`
@@ -102,13 +108,13 @@ See `../ipynb-graphify/SKILL.md` for cell-routing details and notebook limitatio
 ### Step 2b — Convert Lakeview dashboards
 
 ```powershell
-& $PY $LvdashScript $Target
+& $PY $LvdashScript $ScanTarget
 ```
 
 On `--clean`:
 
 ```powershell
-& $PY $LvdashScript $Target --clean
+& $PY $LvdashScript $ScanTarget --clean
 ```
 
 Report briefly, e.g. `Dashboards: N → M sidecars; tables: gold.linkedin.daily_statistics, …`

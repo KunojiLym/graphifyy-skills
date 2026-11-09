@@ -61,7 +61,7 @@ Clone as a **nested** skills tree so sibling paths match what `databricks-graphi
 | Global | `git clone https://github.com/KunojiLym/graphifyy-skills.git ~/.claude/skills/graphifyy-skills` |
 | Project-local | `git clone … <repo>/.claude/skills/graphifyy-skills` |
 
-`CLAUDE.md` and each `SKILL.md` resolve `ipynb_split.py` / `lvdash_split.py` relative to the skill directory (`$PSScriptRoot` / `BASH_SOURCE`), not the notebook scan cwd. Supported layouts:
+`CLAUDE.md` and each `SKILL.md` resolve converters by probing the install paths above (optional `GRAPHIFYY_SKILLS_ROOT`; `$PSScriptRoot` / `BASH_SOURCE` only when non-empty). Set `$ScanTarget` / `SCAN_TARGET` explicitly for ad-hoc agent shells. Supported layouts:
 
 ```
 graphifyy-skills/

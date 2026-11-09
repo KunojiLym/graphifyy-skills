@@ -7,7 +7,7 @@ Install this repo as a **single nested tree** (global or project-local). Both la
 | Global (Claude Code) | `~/.claude/skills/graphifyy-skills/` |
 | Project-local | `<repo>/.claude/skills/graphifyy-skills/` |
 
-Scripts live next to each skill file (`ipynb-graphify/ipynb_split.py`, `databricks-graphify/lvdash_split.py`). **Always resolve those paths from the skill directory** (e.g. PowerShell `$PSScriptRoot`, Bash `$(dirname …)`), not from the workspace cwd — the scan target may be a subfolder.
+Scripts live next to each skill file (`ipynb-graphify/ipynb_split.py`, `databricks-graphify/lvdash_split.py`). **Resolve the skills repo root** by probing the install paths above (or `GRAPHIFYY_SKILLS_ROOT`); use `$PSScriptRoot` / `BASH_SOURCE` only when non-empty and pointing at a skill folder. **Set the notebook/dashboard scan path explicitly** (`$ScanTarget` / `SCAN_TARGET`) — do not rely on `$args[0]` or `$1` in ad-hoc agent shells. Fail loudly if converters are missing.
 
 - **graphify** — Base skill (separate PyPI package). Trigger: `/graphify`
 - **databricks-graphify** (`…/graphifyy-skills/databricks-graphify/SKILL.md`) — notebooks + Lakeview dashboards, then graphify. Trigger: `/databricks-graphify`
