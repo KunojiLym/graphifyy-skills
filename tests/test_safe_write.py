@@ -75,6 +75,86 @@ def test_symlink_sidecar_replaced_without_touching_target(
     assert victim.read_text(encoding="utf-8") == "original"
 
 
+def test_toctou_parent_symlink_swap_does_not_write_outside(
+    tmp_path: Path,
+    tmp_path_factory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Simulate swapping a path component for a symlink after the parent dir fd is opened."""
+    from lib import safe_write as sw
+
+    if not sw._POSIX_DIR_FD:
+        pytest.skip("dir_fd anchoring not available on this platform")
+
+    outside = tmp_path_factory.mktemp("outside")
+    victim = outside / "victim.ipynb.py"
+    victim.write_text("untouched", encoding="utf-8")
+
+    root = tmp_path / "allowed"
+    sub = root / "nested"
+    sub.mkdir(parents=True)
+    target = sub / "out.ipynb.py"
+
+    trapped = root / ".nested_trapped"
+
+    def _swap() -> None:
+        sub.rename(trapped)
+        (root / "nested").symlink_to(outside, target_is_directory=True)
+
+    monkeypatch.setattr(sw, "_race_test_hook", _swap)
+    sw.safe_write_text(target, "safe", allowed_roots=(root,))
+    assert victim.read_text(encoding="utf-8") == "untouched"
+    assert (trapped / "out.ipynb.py").read_text(encoding="utf-8") == "safe"
+
+
+def test_toctou_unlink_via_dir_fd_after_parent_swap(
+    tmp_path: Path,
+    tmp_path_factory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from lib import safe_write as sw
+
+    if not sw._POSIX_DIR_FD:
+        pytest.skip("dir_fd anchoring not available on this platform")
+
+    outside = tmp_path_factory.mktemp("outside")
+    victim = outside / "must_keep.ipynb.py"
+    victim.write_text("keep", encoding="utf-8")
+
+    root = tmp_path / "allowed"
+    sub = root / "nested"
+    sub.mkdir(parents=True)
+    sidecar = sub / "drop.ipynb.py"
+    sidecar.write_text("remove me", encoding="utf-8")
+
+    trapped = root / ".nested_trapped"
+
+    def _swap() -> None:
+        sub.rename(trapped)
+        (root / "nested").symlink_to(outside, target_is_directory=True)
+
+    monkeypatch.setattr(sw, "_race_test_hook", _swap)
+    assert sw.safe_unlink(sidecar, allowed_roots=(root,))
+    assert victim.read_text(encoding="utf-8") == "keep"
+    assert not (trapped / "drop.ipynb.py").exists()
+
+
+def test_no_powershell_home_assignment_in_repo() -> None:
+    """Copilot r4513128214: no PowerShell ``$home =`` assignment (read-only ``$HOME``)."""
+    import re
+
+    repo = Path(__file__).resolve().parent.parent
+    pat = re.compile(r"^\s*\$home\s*=", re.IGNORECASE | re.MULTILINE)
+    offenders: list[str] = []
+    for path in repo.rglob("*"):
+        if path.suffix not in {".ps1", ".md"} or ".git" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if pat.search(text):
+            offenders.append(str(path))
+    assert not offenders, offenders
+
+
 def test_clean_continues_after_oserror_on_unlink(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
