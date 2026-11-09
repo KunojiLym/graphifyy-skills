@@ -137,11 +137,14 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.100 as of 2026-11-01) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.100 (with 0.9.96–0.9.99)
+Stock Graphify v8 (0.9.104 as of 2026-11-08) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.104 (with 0.9.96–0.9.103)
 adds weakest-hop path confidence and parallel-edge `also_seen` provenance,
-centralises LLM rationale credential redaction, and fixes case-distinct
-type/function node ids plus JVM cross-file import resolution.
+centralises LLM rationale credential redaction, fixes case-distinct
+type/function node ids and JVM cross-file import resolution, incremental
+content-only `graphify update`, query depth/budget from `.graphifyrc`, broad
+call-resolution and cache/watch fixes, and skill runbook scan-root hardening
+via `.graphify_root`.
 Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that
