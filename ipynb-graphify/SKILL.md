@@ -43,36 +43,121 @@ etc.) are forwarded verbatim to `/graphify`.
 If the user passed `--clean`, run only Step 2 with `--clean` and stop. Otherwise
 follow all steps in order.
 
-### Step 1 — Resolve the Python interpreter
+### Step 1 — Resolve skill paths, target path, and Python
 
-Reuse graphify's saved interpreter if a graph already exists; otherwise fall back
-to the platform Python. The converter is **stdlib-only**, so any Python 3.8+ works.
+**Set the scan target explicitly** from the user's `/ipynb-graphify <path>` request (default `"."`). Do not rely on `$args[0]`, `$1`, or `$PSScriptRoot` — agents usually run these lines **ad hoc** and those values are empty.
+
+Probe known install roots (project `.claude/skills/graphifyy-skills`, global `~/.claude/skills/graphifyy-skills`, `.cursor/skills/graphifyy-skills`, dev checkout cwd, or `GRAPHIFYY_SKILLS_ROOT`). Use `$PSScriptRoot` / `BASH_SOURCE` only when non-empty **and** the path contains `ipynb_split.py`. **Fail loudly** if no converter is found.
+
+**PowerShell** (quote paths that contain spaces):
 
 ```powershell
+# Set from the user's slash command before running ad hoc:
+$ScanTarget = "."
+
+function Resolve-GraphifyySkillsRoot {
+  if ($env:GRAPHIFYY_SKILL_DIR -and (Test-Path -LiteralPath (Join-Path $env:GRAPHIFYY_SKILL_DIR "ipynb_split.py"))) {
+    return (Split-Path $env:GRAPHIFYY_SKILL_DIR -Parent)
+  }
+  if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot "ipynb_split.py"))) {
+    return (Split-Path $PSScriptRoot -Parent)
+  }
+  $cwd = (Get-Location).Path
+  $userHome = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+  $candidates = @()
+  if ($env:GRAPHIFYY_SKILLS_ROOT) { $candidates += $env:GRAPHIFYY_SKILLS_ROOT }
+  $candidates += @(
+    $cwd,
+    (Join-Path $cwd ".claude\skills\graphifyy-skills"),
+    (Join-Path $userHome ".claude\skills\graphifyy-skills"),
+    (Join-Path $cwd ".cursor\skills\graphifyy-skills")
+  )
+  foreach ($root in $candidates) {
+    if (-not $root) { continue }
+    $ipynb = Join-Path $root "ipynb-graphify\ipynb_split.py"
+    $lv = Join-Path $root "databricks-graphify\lvdash_split.py"
+    if ((Test-Path -LiteralPath $ipynb) -and (Test-Path -LiteralPath $lv)) {
+      return (Resolve-Path -LiteralPath $root).Path
+    }
+  }
+  throw "graphifyy-skills not found: install to ~/.claude/skills/graphifyy-skills or .claude/skills/graphifyy-skills (or set GRAPHIFYY_SKILLS_ROOT)."
+}
+
+$SkillsRoot = Resolve-GraphifyySkillsRoot
+$Script = Join-Path $SkillsRoot "ipynb-graphify\ipynb_split.py"
+if (-not (Test-Path -LiteralPath $Script)) { throw "Converter missing: $Script" }
+
 $PY = "python"
 if (Test-Path graphify-out\.graphify_python) {
-    $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
+  $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
 }
-$PY | Out-File -FilePath graphify-out\.ipynb_python -Encoding utf8 -NoNewline -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path graphify-out -ErrorAction SilentlyContinue | Out-Null
+# Optional: set when the user passed --outdir <dir>
+$OutDir = $null
+# Optional: $true when the user passed --clean
+$RunClean = $false
 ```
 
-(`graphify-out/` may not exist yet on a first run — that is fine, the converter
-does not need it. Create it first if you want to persist the interpreter path:
-`New-Item -ItemType Directory -Force -Path graphify-out | Out-Null`.)
+**Bash**:
+
+```bash
+# Set from the user's slash command before running ad hoc:
+SCAN_TARGET="."
+
+resolve_graphifyy_skills_root() {
+  local cwd="${1:-$(pwd)}" home="${2:-$HOME}" candidate
+  if [[ -n "${GRAPHIFYY_SKILL_DIR:-}" && -f "${GRAPHIFYY_SKILL_DIR}/ipynb_split.py" ]]; then
+    (cd "$(dirname "$GRAPHIFYY_SKILL_DIR")" && pwd); return 0
+  fi
+  if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != bash && -f "$(dirname "${BASH_SOURCE[0]}")/ipynb_split.py" ]]; then
+    (cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd); return 0
+  fi
+  local roots=()
+  [[ -n "${GRAPHIFYY_SKILLS_ROOT:-}" ]] && roots+=("$GRAPHIFYY_SKILLS_ROOT")
+  roots+=("$cwd" "$cwd/.claude/skills/graphifyy-skills" "$home/.claude/skills/graphifyy-skills" "$cwd/.cursor/skills/graphifyy-skills")
+  for candidate in "${roots[@]}"; do
+    if [[ -f "$candidate/ipynb-graphify/ipynb_split.py" && -f "$candidate/databricks-graphify/lvdash_split.py" ]]; then
+      (cd "$candidate" && pwd); return 0
+    fi
+  done
+  echo "error: graphifyy-skills not found (set GRAPHIFYY_SKILLS_ROOT or install under .claude/skills)." >&2
+  return 1
+}
+
+SKILLS_ROOT="$(resolve_graphifyy_skills_root)" || exit 1
+SCRIPT="$SKILLS_ROOT/ipynb-graphify/ipynb_split.py"
+[[ -f "$SCRIPT" ]] || { echo "error: converter missing: $SCRIPT" >&2; exit 1; }
+PY=python3
+if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
+# Optional: OUTDIR="..." when the user passed --outdir <dir>
+# Optional: RUN_CLEAN=1 when the user passed --clean
+```
+
+(`lib/resolve_skills_root.sh` / `lib/resolve_skills_root.ps1` mirror this logic for copy/paste maintenance.)
+
+The converter is **stdlib-only** (Python 3.8+). It adds the skills repo root to `sys.path` so `lib/safe_write.py` is found when scripts are invoked by absolute path.
 
 ### Step 2 — Convert notebooks to sidecars
 
-Run the converter against the target path (substitute `INPUT_PATH`, default `.`).
-The script lives next to this skill file.
+Run the converter **once** with all flags from Step 1 variables (do not invoke it in Step 1):
 
 ```powershell
-& $PY "$PSScriptRoot\ipynb_split.py" INPUT_PATH
+$invokeArgs = @($ScanTarget)
+if ($OutDir) { $invokeArgs += "--outdir"; $invokeArgs += $OutDir }
+if ($RunClean) { $invokeArgs += "--clean" }
+& $PY $Script @invokeArgs
 ```
 
-If `$PSScriptRoot` is not available in your host, use the absolute path to
-`ipynb_split.py` inside this skill directory.
+```bash
+ARGS=("$SCAN_TARGET")
+[[ -n "${OUTDIR:-}" ]] && ARGS+=("--outdir" "$OUTDIR")
+[[ -n "${RUN_CLEAN:-}" ]] && ARGS+=("--clean")
+"$PY" "$SCRIPT" "${ARGS[@]}"
+```
 
-The script prints a JSON summary. Read it silently and report a clean line, e.g.:
+When the user passes `--outdir`, set `$OutDir` / `OUTDIR` only in Step 1 and include it here so sidecars are **not** also written beside the notebooks in the source tree.
+
+The script prints a JSON summary on stdout. Read it silently and report a clean line, e.g.:
 
 ```
 Converted N notebooks → M sidecars (X code, Y markdown, Z sql).
@@ -83,31 +168,56 @@ or non-notebook `.ipynb` is skipped, not fatal). If `notebooks` is 0, tell the
 user no notebooks were found and continue to Step 3 anyway (the repo may still
 have code/docs worth graphing) — or stop if the user only wanted notebooks.
 
-**`--clean` mode:** if the user passed `--clean`, run instead:
+**`--clean` mode:** if the user passed `--clean`, append `--clean` to the converter argv
+(and keep `$ScanTarget` / `$SCAN_TARGET` quoted), report how many sidecars were removed, then stop — do not
+run graphify.
 
-```powershell
-& $PY "$PSScriptRoot\ipynb_split.py" INPUT_PATH --clean
-```
-
-Report how many sidecars were removed, then stop. Do not run graphify.
+**`--outdir`:** pass `--outdir` and a quoted directory path as separate argv tokens after
+`$ScanTarget` / `$SCAN_TARGET`.
 
 ### Step 3 — Run the graphify pipeline
 
-Now that sidecars exist on disk, invoke the **graphify** skill on the *same*
-`INPUT_PATH`, forwarding any extra flags the user gave. Follow the graphify
-SKILL.md exactly (detect → extract → build → cluster → label → **consolidate** → report).
-graphify will pick up the `.ipynb.py` / `.ipynb.md` / `.ipynb.sql` / … sidecars as normal
-code and doc files. The original `.ipynb` files are skipped by graphify as before.
+Invoke the **graphify** skill on the same scan target, forwarding extra flags (`--directed`,
+`--no-viz`, `--mode deep`, …). Stock graphify runs detect → extract → build → cluster →
+label → report (see the graphify skill). It picks up `.ipynb.py` / `.ipynb.md` / `.ipynb.sql`
+/ … sidecars; original `.ipynb` files remain skipped.
 
-If graphify is already installed and a graph exists, prefer
-`/graphify INPUT_PATH --update` so only the new sidecars are (re-)extracted.
+If `graphify-out/graph.json` already exists for this project, prefer **`/graphify <target> --update`**
+so graphify 0.9.104's content-only incremental re-extract picks up new sidecars without a full rebuild.
 
-When `graphify-out/_consolidate_communities.py` exists at the workspace root, graphify
-**Step 5.5** runs after labeling — re-cluster, merge notebook sidecar fragments, and
-apply section-root community names. Run graphify from the workspace root (`.`) even when
-`INPUT_PATH` is a subfolder, so consolidation finds `graphify-out/`.
+**Optional project-local post-label hook:** some workspaces keep a custom
+`graphify-out/_consolidate_communities.py`. That script is **not** part of stock Graphify.
+Only run it when the user explicitly maintains it and the base graphify skill documents it
+for that repo; do not treat it as a required step of `/ipynb-graphify`.
 
-### Step 4 — Tell the user about cleanup
+### Step 4 — Verify relationships (graphify 0.9.104)
+
+After the graph build, sanity-check Databricks value with supported CLI commands
+(run from the project root where `graphify-out/graph.json` lives):
+
+```bash
+graphify query "gold.linkedin daily statistics pipeline" --graph graphify-out/graph.json
+graphify explain "refresh materialized view" --graph graphify-out/graph.json
+graphify path "linkedin_pipeline.ipynb.py" "gold.linkedin.daily_statistics" --graph graphify-out/graph.json
+```
+
+Use `--seed`, `--budget`, and `--depth` when the project's `.graphifyrc` sets query defaults.
+
+When reporting findings, separate evidence types:
+
+| Source | Confidence in graph | Meaning |
+|--------|---------------------|---------|
+| `.ipynb.py` / `.ipynb.sql` / `.ipynb.sh` … | **EXTRACTED** | tree-sitter / SQL AST from sidecars |
+| `.ipynb.md` prose | mix of **EXTRACTED** / **INFERRED** | semantic doc links per graphify markdown rules |
+| User paraphrase | n/a | not a graph edge — cite `graphify query` output |
+
+Notebook / Lakeview **limitations** still apply: `source_location` on nodes points at
+**sidecar paths**, not `.ipynb` cells (use `# %% cell N` markers to map back). Cross-notebook
+`%run` is not an edge. Lakeview table lists in `.lvdash.md` from `/databricks-graphify` use
+regex heuristics; SQL table refs in `.lvdash.sql` / `.ipynb.sql` become **EXTRACTED** once
+graphify's SQL extractor runs.
+
+### Step 5 — Tell the user about cleanup
 
 The sidecars are build artifacts. In your final summary, remind the user:
 
@@ -137,10 +247,14 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.86 as of 2026-10-11) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.86 stops incremental
-`graphify update` and `watch` from re-clustering and re-rendering after
-an unchanged rebuild.
+Stock Graphify v8 (0.9.104 as of 2026-11-08) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.104 (with 0.9.96–0.9.103)
+adds weakest-hop path confidence and parallel-edge `also_seen` provenance,
+centralises LLM rationale credential redaction, fixes case-distinct
+type/function node ids and JVM cross-file import resolution, incremental
+content-only `graphify update`, query depth/budget from `.graphifyrc`, broad
+call-resolution and cache/watch fixes, and skill runbook scan-root hardening
+via `.graphify_root`.
 Native support is proposed in
 [Graphify-Labs/graphify#1498](https://github.com/Graphify-Labs/graphify/pull/1498)
 (open, not merged: `KunojiLym feat/ipynb-notebook-support` → `v8`). Until that

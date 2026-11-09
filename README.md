@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock Graphify v8 ([0.9.86](https://pypi.org/project/graphifyy/0.9.86/) as of 2026-10-11) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.86 stops incremental `graphify update` and `watch` from re-clustering and re-rendering after an unchanged rebuild. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.104](https://pypi.org/project/graphifyy/0.9.104/) as of 2026-11-08) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.104 (with 0.9.96–0.9.103) adds weakest-hop path confidence and parallel-edge `also_seen` provenance, centralises LLM rationale credential redaction, fixes case-distinct type/function node ids and JVM cross-file import resolution, incremental content-only `graphify update`, query depth/budget from `.graphifyrc`, broad call-resolution and cache/watch fixes, and skill runbook scan-root hardening via `.graphify_root`. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
@@ -54,12 +54,23 @@ Orchestrates both notebook and dashboard conversion:
 
 ## Installation
 
-Add this repository to your `.claude/skills/` directory:
+Clone as a **nested** skills tree so sibling paths match what `databricks-graphify` expects:
 
-```bash
-git clone https://github.com/KunojiLym/graphifyy-skills.git \
-  ~/.claude/skills/graphifyy-skills
+| Layout | Command |
+|--------|---------|
+| Global | `git clone https://github.com/KunojiLym/graphifyy-skills.git ~/.claude/skills/graphifyy-skills` |
+| Project-local | `git clone … <repo>/.claude/skills/graphifyy-skills` |
+
+`CLAUDE.md` and each `SKILL.md` resolve converters by probing the install paths above (optional `GRAPHIFYY_SKILLS_ROOT`; `$PSScriptRoot` / `BASH_SOURCE` only when non-empty). Set `$ScanTarget` / `SCAN_TARGET` explicitly for ad-hoc agent shells. Supported layouts:
+
 ```
+graphifyy-skills/
+  lib/safe_write.py
+  ipynb-graphify/{SKILL.md,ipynb_split.py}
+  databricks-graphify/{SKILL.md,lvdash_split.py}
+```
+
+Recommended graphifyy pin: **[0.9.104](https://pypi.org/project/graphifyy/0.9.104/)** (2026-11-08).
 
 Then use in Claude Chat:
 - `/ipynb-graphify` — for notebooks only
@@ -126,6 +137,8 @@ daily_metrics.lvdash.md   # dashboard summary + "Consumes" table list
 5. **Write** sidecars with cell index markers in headers
 6. **Report** JSON summary
 
+Sidecar writes use `lib/safe_write.py`: outputs stay under the scan root or `--outdir`, refuse path escape, replace dangling symlinks in-place, and atomically overwrite on legitimate reruns.
+
 ### lvdash_split.py
 
 1. **Scan** for `.lvdash.json` files
@@ -156,13 +169,22 @@ That PR is a weaker path: one markdown sidecar classified as a document (semanti
 - graphify (for the final pipeline)
 - PowerShell (for skill invocation on Windows; Linux/Mac use equivalent shell)
 
+## Development
+
+```bash
+python3 -m pip install pytest
+python3 -m pytest -q
+```
+
+CI runs the same suite on pushes and pull requests (`.github/workflows/test.yml`).
+
 ## Contributing
 
 PRs welcome! Focus areas:
 - Improve SQL regex for complex queries (CTEs, dynamic tables)
 - Add support for additional notebook magics or cell types
 - Enhance sidecar metadata for better graphify extraction
-- Test coverage for edge cases
+- Regression tests for converter safety and edge cases
 
 ## License
 
