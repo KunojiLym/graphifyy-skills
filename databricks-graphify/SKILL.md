@@ -40,34 +40,59 @@ If the user passed `--clean`, run Steps 2a and 2b with `--clean`, then stop.
 
 Otherwise follow all steps in order.
 
-### Step 1 — Resolve paths and Python
+### Step 1 — Resolve skill paths, target path, and Python
+
+Resolve converter scripts from the **installed skills tree**, not from workspace cwd.
+Nested installs keep sibling skills:
+
+```
+graphifyy-skills/
+  ipynb-graphify/ipynb_split.py
+  databricks-graphify/lvdash_split.py   ← this skill
+```
+
+**PowerShell:**
 
 ```powershell
-$ROOT = (Get-Location).Path
-$SKILL = Join-Path $ROOT ".claude\skills\databricks-graphify"
-$IPYNB_SCRIPT = Join-Path $ROOT ".claude\skills\ipynb-graphify\ipynb_split.py"
-$LVDASH_SCRIPT = Join-Path $SKILL "lvdash_split.py"
+$DatabricksDir = $PSScriptRoot
+$SkillsRoot    = Split-Path $DatabricksDir -Parent
+$IpynbScript   = Join-Path $SkillsRoot "ipynb-graphify\ipynb_split.py"
+$LvdashScript  = Join-Path $DatabricksDir "lvdash_split.py"
+$Target        = $args[0]
+if (-not $Target) { $Target = "." }
 
 New-Item -ItemType Directory -Force -Path graphify-out | Out-Null
 $PY = "python"
 if (Test-Path graphify-out\.graphify_python) {
-    $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
+  $PY = (Get-Content graphify-out\.graphify_python -Raw).Trim()
 }
 ```
 
-Substitute `INPUT_PATH` (default `.`). If `$PSScriptRoot` is available in your host, you
-may resolve `$SKILL` from there instead of `$ROOT\.claude\skills\databricks-graphify`.
+**Bash:**
+
+```bash
+DATABRICKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILLS_ROOT="$(dirname "$DATABRICKS_DIR")"
+IPYNB_SCRIPT="$SKILLS_ROOT/ipynb-graphify/ipynb_split.py"
+LVDASH_SCRIPT="$DATABRICKS_DIR/lvdash_split.py"
+TARGET="${1:-.}"
+PY=python3
+if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
+```
+
+Pass `$Target` / `$TARGET` as a quoted argument in every converter invocation (paths with spaces).
 
 ### Step 2a — Convert notebooks (ipynb-graphify)
 
 ```powershell
-& $PY $IPYNB_SCRIPT INPUT_PATH [--outdir OUTDIR]
+& $PY $IpynbScript $Target
+# optional: & $PY $IpynbScript $Target --outdir "D:\mirrored sidecars"
 ```
 
 On `--clean`:
 
 ```powershell
-& $PY $IPYNB_SCRIPT INPUT_PATH --clean
+& $PY $IpynbScript $Target --clean
 ```
 
 Report briefly, e.g. `Notebooks: N → M sidecars (X py, Y md, Z sql).`
@@ -77,13 +102,13 @@ See `../ipynb-graphify/SKILL.md` for cell-routing details and notebook limitatio
 ### Step 2b — Convert Lakeview dashboards
 
 ```powershell
-& $PY $LVDASH_SCRIPT INPUT_PATH [--outdir OUTDIR]
+& $PY $LvdashScript $Target
 ```
 
 On `--clean`:
 
 ```powershell
-& $PY $LVDASH_SCRIPT INPUT_PATH --clean
+& $PY $LvdashScript $Target --clean
 ```
 
 Report briefly, e.g. `Dashboards: N → M sidecars; tables: gold.linkedin.daily_statistics, …`
@@ -99,33 +124,39 @@ If `dashboards` is 0, say so and continue — the path may still have notebooks 
 
 ### Step 3 — Run graphify
 
-Invoke the **graphify** skill on the same `INPUT_PATH`, forwarding extra flags.
-Use workspace root (`.`) as the graphify working directory when possible so
-**Step 5.5 consolidation** (`graphify-out/_consolidate_communities.py`) runs after
-labeling — it merges notebook and dashboard sidecar fragments and applies section-root
-community names.
+Invoke the **graphify** skill on the same scan target, forwarding extra flags.
 
-If `graphify-out/graph.json` already exists for this scan root, prefer:
+If `graphify-out/graph.json` already exists, prefer **`/graphify <target> --update`**
+(graphify 0.9.104 content-only incremental re-extract). Otherwise run a full `/graphify <target>`.
 
+The update picks up new `.ipynb.*` and `.lvdash.*` sidecars via AST (SQL/Python) and semantic
+extraction (`.md` sidecars).
+
+**Optional project-local hook:** a workspace may ship `graphify-out/_consolidate_communities.py`
+for custom community merging. This is **not** stock Graphify — run only when the user maintains
+that script and the base graphify skill documents it; `/databricks-graphify` does not require it.
+
+### Step 4 — Summarise and verify Databricks-specific graph value
+
+Verify claims with graphify 0.9.104 CLI (not invented wrappers):
+
+```bash
+graphify query "lakeview dashboard gold tables" --graph graphify-out/graph.json
+graphify explain "daily_statistics" --graph graphify-out/graph.json
+graphify path "daily_metrics.lvdash.sql" "gold.linkedin.daily_statistics" --graph graphify-out/graph.json
 ```
-/graphify INPUT_PATH --update
-```
 
-Otherwise run a full `/graphify INPUT_PATH`.
+In your final message, call out what the graph should expose, citing query/explain output:
 
-The update picks up new `.ipynb.*` and `.lvdash.*` sidecars via AST (SQL/Python) and
-semantic extraction (`.md` sidecars) as appropriate.
+- Notebook pipeline logic in `*.ipynb.py` / SQL in `*.ipynb.sql` (**EXTRACTED** AST edges).
+- Lakeview dataset SQL in `*.lvdash.sql` → gold tables (**EXTRACTED** via SQL extractor).
+- Dashboard `Consumes` lists in `*.lvdash.md` (**regex heuristic** during split — treat as
+  advisory until confirmed by `graphify query` or SQL AST nodes).
+- Bundle YAML such as `dashboards.yml` (**EXTRACTED** by graphify's YAML/doc extractors when present).
 
-### Step 4 — Summarise Databricks-specific graph value
-
-In your final message, call out what the graph should now expose (verify with
-`graphify query` if helpful):
-
-- **Daily-use pipeline:** `linkedin_pipeline.ipynb.py` → bronze/silver logic;
-  `*.lvdash.sql` → `gold.linkedin.daily_statistics`;
-  `refresh_linkedin_view_notebook.ipynb.sql` → `REFRESH MATERIALIZED VIEW`.
-- **Public repo:** `*.lvdash.sql` → `fct_daily_profile_statistics` / `fct_daily_post_statistics`;
-  `resources/dashboards.yml` bundle resource should connect via shared table nodes.
+Distinguish **EXTRACTED** (parser/AST) vs **INFERRED** (semantic doc edges). Parallel SQL→table
+edges may include `also_seen` provenance in 0.9.104 when the same reference appears in multiple
+sidecars.
 
 State limitations honestly (see below).
 
