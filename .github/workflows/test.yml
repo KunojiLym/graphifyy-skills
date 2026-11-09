@@ -13,6 +13,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install PowerShell
+        run: |
+          if ! command -v pwsh >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y wget apt-transport-https software-properties-common
+            source /etc/os-release
+            wget -q "https://packages.microsoft.com/config/ubuntu/${VERSION_ID}/packages-microsoft-prod.deb" -O packages-microsoft-prod.deb
+            sudo dpkg -i packages-microsoft-prod.deb
+            sudo apt-get update -qq
+            sudo apt-get install -y powershell
+          fi
+          pwsh -NoProfile -Command '$PSVersionTable.PSVersion'
       - name: Install pytest
         run: python -m pip install pytest
       - name: Run tests

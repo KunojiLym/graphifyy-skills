@@ -148,14 +148,13 @@ def test_adhoc_bash_missing_install_exits_nonzero(tmp_path: Path) -> None:
 
 
 def test_empty_psscriptroot_splits_unreliably() -> None:
-    """Documented regression: ad-hoc PowerShell has no $PSScriptRoot (verified on Windows hosts)."""
-    if shutil.which("pwsh") or shutil.which("powershell"):
-        exe = shutil.which("pwsh") or shutil.which("powershell")
-        proc = subprocess.run(
-            [exe, "-NoProfile", "-Command", "$PSScriptRoot; if (-not $PSScriptRoot) { exit 0 } else { exit 9 }"],
-            capture_output=True,
-            text=True,
-        )
-        assert proc.returncode == 0
-    else:
+    """Ad-hoc PowerShell has no $PSScriptRoot; resolver still probes install candidates."""
+    exe = shutil.which("pwsh") or shutil.which("powershell")
+    if not exe:
         pytest.skip("PowerShell not installed on this runner")
+    proc = subprocess.run(
+        [exe, "-NoProfile", "-Command", "if (-not $PSScriptRoot) { exit 0 } else { exit 9 }"],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0

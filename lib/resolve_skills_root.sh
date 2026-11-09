@@ -4,7 +4,7 @@ resolve_graphifyy_skills_root() {
   local cwd="${1:-$(pwd)}"
   local home="${2:-$HOME}"
   local hint="${GRAPHIFYY_SKILL_DIR:-}"
-  local candidate roots
+  local candidate
 
   if [[ -n "$hint" && -f "$hint/ipynb_split.py" && -f "$(dirname "$hint")/databricks-graphify/lvdash_split.py" ]]; then
     printf '%s\n' "$(cd "$(dirname "$hint")" && pwd)"
@@ -27,13 +27,11 @@ resolve_graphifyy_skills_root() {
     fi
   fi
 
-  if [[ -n "${GRAPHIFYY_SKILLS_ROOT:-}" ]]; then
-    roots="$GRAPHIFYY_SKILLS_ROOT"
-  else
-    roots="$cwd $cwd/.claude/skills/graphifyy-skills $home/.claude/skills/graphifyy-skills $cwd/.cursor/skills/graphifyy-skills"
-  fi
+  local roots=()
+  [[ -n "${GRAPHIFYY_SKILLS_ROOT:-}" ]] && roots+=("$GRAPHIFYY_SKILLS_ROOT")
+  roots+=("$cwd" "$cwd/.claude/skills/graphifyy-skills" "$home/.claude/skills/graphifyy-skills" "$cwd/.cursor/skills/graphifyy-skills")
 
-  for candidate in $roots; do
+  for candidate in "${roots[@]}"; do
     if [[ -f "$candidate/ipynb-graphify/ipynb_split.py" && -f "$candidate/databricks-graphify/lvdash_split.py" ]]; then
       printf '%s\n' "$(cd "$candidate" && pwd)"
       return 0

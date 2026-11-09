@@ -51,14 +51,46 @@ graphifyy-skills/
   databricks-graphify/lvdash_split.py   ← this skill
 ```
 
-**Set `$ScanTarget` / `SCAN_TARGET` explicitly** from the user's `/databricks-graphify <path>` (default `"."`). Do not use `$args[0]` or `$1`. Resolve the skills tree from install candidates; use `$PSScriptRoot` only when it contains `lvdash_split.py` or `ipynb_split.py`. Fail loudly if not found (same resolver as `/ipynb-graphify` — see that skill's Step 1 Bash/PowerShell `Resolve-GraphifyySkillsRoot` / `resolve_graphifyy_skills_root`).
+**Set `$ScanTarget` / `SCAN_TARGET` explicitly** from the user's `/databricks-graphify <path>` (default `"."`). Do not use `$args[0]` or `$1`. Probe install roots like `/ipynb-graphify` Step 1; fail loudly if converters are missing.
 
-**PowerShell** (after resolver returns `$SkillsRoot`):
+**PowerShell** (quote paths that contain spaces):
 
 ```powershell
 $ScanTarget = "."
 
-# … Resolve-GraphifyySkillsRoot { … }  (same function as ipynb-graphify Step 1)
+function Resolve-GraphifyySkillsRoot {
+  if ($env:GRAPHIFYY_SKILL_DIR -and (Test-Path -LiteralPath (Join-Path $env:GRAPHIFYY_SKILL_DIR "ipynb_split.py"))) {
+    return (Split-Path $env:GRAPHIFYY_SKILL_DIR -Parent)
+  }
+  if ($env:GRAPHIFYY_SKILL_DIR -and (Test-Path -LiteralPath (Join-Path $env:GRAPHIFYY_SKILL_DIR "lvdash_split.py"))) {
+    return (Split-Path $env:GRAPHIFYY_SKILL_DIR -Parent)
+  }
+  if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot "ipynb_split.py"))) {
+    return (Split-Path $PSScriptRoot -Parent)
+  }
+  if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot "lvdash_split.py"))) {
+    return (Split-Path $PSScriptRoot -Parent)
+  }
+  $cwd = (Get-Location).Path
+  $userHome = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+  $candidates = @()
+  if ($env:GRAPHIFYY_SKILLS_ROOT) { $candidates += $env:GRAPHIFYY_SKILLS_ROOT }
+  $candidates += @(
+    $cwd,
+    (Join-Path $cwd ".claude\skills\graphifyy-skills"),
+    (Join-Path $userHome ".claude\skills\graphifyy-skills"),
+    (Join-Path $cwd ".cursor\skills\graphifyy-skills")
+  )
+  foreach ($root in $candidates) {
+    if (-not $root) { continue }
+    $ipynb = Join-Path $root "ipynb-graphify\ipynb_split.py"
+    $lv = Join-Path $root "databricks-graphify\lvdash_split.py"
+    if ((Test-Path -LiteralPath $ipynb) -and (Test-Path -LiteralPath $lv)) {
+      return (Resolve-Path -LiteralPath $root).Path
+    }
+  }
+  throw "graphifyy-skills not found: install to ~/.claude/skills/graphifyy-skills or .claude/skills/graphifyy-skills (or set GRAPHIFYY_SKILLS_ROOT)."
+}
 
 $SkillsRoot = Resolve-GraphifyySkillsRoot
 $IpynbScript = Join-Path $SkillsRoot "ipynb-graphify\ipynb_split.py"
@@ -76,10 +108,36 @@ if (Test-Path graphify-out\.graphify_python) {
 }
 ```
 
-**Bash** (after `SKILLS_ROOT="$(resolve_graphifyy_skills_root)" || exit 1`):
+**Bash**:
 
 ```bash
 SCAN_TARGET="."
+
+resolve_graphifyy_skills_root() {
+  local cwd="${1:-$(pwd)}" home="${2:-$HOME}" candidate
+  if [[ -n "${GRAPHIFYY_SKILL_DIR:-}" && -f "${GRAPHIFYY_SKILL_DIR}/ipynb_split.py" ]]; then
+    (cd "$(dirname "$GRAPHIFYY_SKILL_DIR")" && pwd); return 0
+  fi
+  if [[ -n "${GRAPHIFYY_SKILL_DIR:-}" && -f "${GRAPHIFYY_SKILL_DIR}/lvdash_split.py" ]]; then
+    (cd "$(dirname "$GRAPHIFYY_SKILL_DIR")" && pwd); return 0
+  fi
+  if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != bash && -f "$(dirname "${BASH_SOURCE[0]}")/ipynb_split.py" ]]; then
+    (cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd); return 0
+  fi
+  if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != bash && -f "$(dirname "${BASH_SOURCE[0]}")/lvdash_split.py" ]]; then
+    (cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd); return 0
+  fi
+  local roots=()
+  [[ -n "${GRAPHIFYY_SKILLS_ROOT:-}" ]] && roots+=("$GRAPHIFYY_SKILLS_ROOT")
+  roots+=("$cwd" "$cwd/.claude/skills/graphifyy-skills" "$home/.claude/skills/graphifyy-skills" "$cwd/.cursor/skills/graphifyy-skills")
+  for candidate in "${roots[@]}"; do
+    if [[ -f "$candidate/ipynb-graphify/ipynb_split.py" && -f "$candidate/databricks-graphify/lvdash_split.py" ]]; then
+      (cd "$candidate" && pwd); return 0
+    fi
+  done
+  echo "error: graphifyy-skills not found (set GRAPHIFYY_SKILLS_ROOT or install under .claude/skills)." >&2
+  return 1
+}
 
 SKILLS_ROOT="$(resolve_graphifyy_skills_root)" || exit 1
 IPYNB_SCRIPT="$SKILLS_ROOT/ipynb-graphify/ipynb_split.py"
@@ -87,7 +145,7 @@ LVDASH_SCRIPT="$SKILLS_ROOT/databricks-graphify/lvdash_split.py"
 [[ -f "$IPYNB_SCRIPT" && -f "$LVDASH_SCRIPT" ]] || { echo "error: converter missing under $SKILLS_ROOT" >&2; exit 1; }
 PY=python3
 if [[ -f graphify-out/.graphify_python ]]; then PY="$(tr -d '\n' < graphify-out/.graphify_python)"; fi
-# Optional: $OutDir / OUTDIR when the user passed --outdir <dir>
+# Optional: OUTDIR when the user passed --outdir <dir>
 ```
 
 Pass `$ScanTarget` / `$SCAN_TARGET` as a quoted argument in every converter invocation (paths with spaces).

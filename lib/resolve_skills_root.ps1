@@ -15,22 +15,22 @@ function Resolve-GraphifyySkillsRoot {
     if ($PSScriptRoot) {
         $ipynbHere = Join-Path $PSScriptRoot "ipynb_split.py"
         $lvHere = Join-Path $PSScriptRoot "lvdash_split.py"
-        if (Test-Path -LiteralPath $ipynbHere -or Test-Path -LiteralPath $lvHere) {
+        if ((Test-Path -LiteralPath $ipynbHere) -or (Test-Path -LiteralPath $lvHere)) {
             return (Split-Path $PSScriptRoot -Parent)
         }
     }
-  $cwd = (Get-Location).Path
-  $home = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
-  $candidates = @()
-  if ($env:GRAPHIFYY_SKILLS_ROOT) {
+    $cwd = (Get-Location).Path
+    $userHome = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+    $candidates = @()
+    if ($env:GRAPHIFYY_SKILLS_ROOT) {
         $candidates += $env:GRAPHIFYY_SKILLS_ROOT
     }
-  $candidates += @(
-    $cwd,
-    (Join-Path $cwd ".claude\skills\graphifyy-skills"),
-    (Join-Path $home ".claude\skills\graphifyy-skills"),
-    (Join-Path $cwd ".cursor\skills\graphifyy-skills")
-  )
+    $candidates += @(
+        $cwd,
+        (Join-Path $cwd ".claude\skills\graphifyy-skills"),
+        (Join-Path $userHome ".claude\skills\graphifyy-skills"),
+        (Join-Path $cwd ".cursor\skills\graphifyy-skills")
+    )
     foreach ($root in $candidates) {
         if (-not $root) { continue }
         $ipynb = Join-Path $root "ipynb-graphify\ipynb_split.py"

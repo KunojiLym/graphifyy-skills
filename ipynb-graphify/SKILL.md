@@ -63,13 +63,13 @@ function Resolve-GraphifyySkillsRoot {
     return (Split-Path $PSScriptRoot -Parent)
   }
   $cwd = (Get-Location).Path
-  $home = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+  $userHome = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
   $candidates = @()
   if ($env:GRAPHIFYY_SKILLS_ROOT) { $candidates += $env:GRAPHIFYY_SKILLS_ROOT }
   $candidates += @(
     $cwd,
     (Join-Path $cwd ".claude\skills\graphifyy-skills"),
-    (Join-Path $home ".claude\skills\graphifyy-skills"),
+    (Join-Path $userHome ".claude\skills\graphifyy-skills"),
     (Join-Path $cwd ".cursor\skills\graphifyy-skills")
   )
   foreach ($root in $candidates) {
