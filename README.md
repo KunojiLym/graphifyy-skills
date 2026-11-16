@@ -2,7 +2,7 @@
 
 Extends [graphify](https://github.com/Graphify-Labs/graphify) to index **Jupyter/Databricks notebooks** and **Lakeview dashboards** as first-class knowledge graph assets.
 
-Stock Graphify v8 ([0.9.104](https://pypi.org/project/graphifyy/0.9.104/) as of 2026-11-08) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.104 (with 0.9.96–0.9.103) adds weakest-hop path confidence and parallel-edge `also_seen` provenance, centralises LLM rationale credential redaction, fixes case-distinct type/function node ids and JVM cross-file import resolution, incremental content-only `graphify update`, query depth/budget from `.graphifyrc`, broad call-resolution and cache/watch fixes, and skill runbook scan-root hardening via `.graphify_root`. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
+Stock Graphify v8 ([0.9.111](https://pypi.org/project/graphifyy/0.9.111/) as of 2026-11-15) still skips `.ipynb` (not in `CODE_EXTENSIONS` or `DOC_EXTENSIONS`) and has no Lakeview `.lvdash.json` SQL extractor. 0.9.111 (with 0.9.96–0.9.110) adds weakest-hop path confidence and parallel-edge `also_seen` provenance, centralises LLM rationale credential redaction, fixes case-distinct type/function node ids and JVM cross-file import resolution, incremental content-only `graphify update`, query depth/budget from `.graphifyrc`, broad call-resolution and cache/watch fixes, and skill runbook scan-root hardening via `.graphify_root`. These skills remain the working path: they split notebooks and dashboards into per-language sidecars so graphify can extract AST nodes, SQL references, and semantic concepts from pipeline logic and dashboard queries.
 
 ## Features
 
@@ -70,7 +70,7 @@ graphifyy-skills/
   databricks-graphify/{SKILL.md,lvdash_split.py}
 ```
 
-Recommended graphifyy pin: **[0.9.104](https://pypi.org/project/graphifyy/0.9.104/)** (2026-11-08).
+Recommended graphifyy pin: **[0.9.111](https://pypi.org/project/graphifyy/0.9.111/)** (2026-11-15).
 
 Then use in Claude Chat:
 - `/ipynb-graphify` — for notebooks only
