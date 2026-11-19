@@ -206,7 +206,7 @@ If `dashboards` is 0, say so and continue — the path may still have notebooks 
 Invoke the **graphify** skill on the same scan target, forwarding extra flags.
 
 If `graphify-out/graph.json` already exists, prefer **`/graphify <target> --update`**
-(graphify 0.9.104 content-only incremental re-extract). Otherwise run a full `/graphify <target>`.
+(graphify 0.9.111 content-only incremental re-extract). Otherwise run a full `/graphify <target>`.
 
 The update picks up new `.ipynb.*` and `.lvdash.*` sidecars via AST (SQL/Python) and semantic
 extraction (`.md` sidecars).
@@ -217,7 +217,7 @@ that script and the base graphify skill documents it; `/databricks-graphify` doe
 
 ### Step 4 — Summarise and verify Databricks-specific graph value
 
-Verify claims with graphify 0.9.104 CLI (not invented wrappers):
+Verify claims with graphify 0.9.111 CLI (not invented wrappers):
 
 ```bash
 graphify query "lakeview dashboard gold tables" --graph graphify-out/graph.json
@@ -234,7 +234,7 @@ In your final message, call out what the graph should expose, citing query/expla
 - Bundle YAML such as `dashboards.yml` (**EXTRACTED** by graphify's YAML/doc extractors when present).
 
 Distinguish **EXTRACTED** (parser/AST) vs **INFERRED** (semantic doc edges). Parallel SQL→table
-edges may include `also_seen` provenance in 0.9.104 when the same reference appears in multiple
+edges may include `also_seen` provenance in 0.9.111 when the same reference appears in multiple
 sidecars.
 
 State limitations honestly (see below).
@@ -270,8 +270,8 @@ Sidecars are build artifacts. Remind the user:
 
 ## Upstream path
 
-Stock Graphify v8 (0.9.104 as of 2026-11-08) still skips `.ipynb` and has no
-Lakeview `.lvdash.json` SQL extractor. 0.9.104 (with 0.9.96–0.9.103) adds
+Stock Graphify v8 (0.9.111 as of 2026-11-15) still skips `.ipynb` and has no
+Lakeview `.lvdash.json` SQL extractor. 0.9.111 (with 0.9.96–0.9.110) adds
 weakest-hop path confidence and parallel-edge `also_seen` provenance,
 centralises LLM rationale credential redaction, fixes case-distinct
 type/function node ids and JVM cross-file import resolution, incremental
