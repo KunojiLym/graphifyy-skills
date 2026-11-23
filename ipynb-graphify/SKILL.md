@@ -183,14 +183,14 @@ label → report (see the graphify skill). It picks up `.ipynb.py` / `.ipynb.md`
 / … sidecars; original `.ipynb` files remain skipped.
 
 If `graphify-out/graph.json` already exists for this project, prefer **`/graphify <target> --update`**
-so graphify 0.9.111's content-only incremental re-extract picks up new sidecars without a full rebuild.
+so graphify 0.9.115's content-only incremental re-extract picks up new sidecars without a full rebuild.
 
 **Optional project-local post-label hook:** some workspaces keep a custom
 `graphify-out/_consolidate_communities.py`. That script is **not** part of stock Graphify.
 Only run it when the user explicitly maintains it and the base graphify skill documents it
 for that repo; do not treat it as a required step of `/ipynb-graphify`.
 
-### Step 4 — Verify relationships (graphify 0.9.111)
+### Step 4 — Verify relationships (graphify 0.9.115)
 
 After the graph build, sanity-check Databricks value with supported CLI commands
 (run from the project root where `graphify-out/graph.json` lives):
@@ -247,8 +247,8 @@ The sidecars are build artifacts. In your final summary, remind the user:
 
 ## Native Graphify path (PR 1498)
 
-Stock Graphify v8 (0.9.111 as of 2026-11-15) still skips `.ipynb` — it is in
-neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.111 (with 0.9.96–0.9.110)
+Stock Graphify v8 (0.9.115 as of 2026-11-15) still skips `.ipynb` — it is in
+neither `CODE_EXTENSIONS` nor `DOC_EXTENSIONS`. 0.9.115 (with 0.9.96–0.9.110)
 adds weakest-hop path confidence and parallel-edge `also_seen` provenance,
 centralises LLM rationale credential redaction, fixes case-distinct
 type/function node ids and JVM cross-file import resolution, incremental
